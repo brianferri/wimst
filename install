@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+IFS=$'\n\t'
+
+ARGUMENTS=("$@")
+SKIP_CONFIRMATION=false
+DEBUG=false
+
+SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+THEME_NAME="$(basename "$SOURCE_DIR")"
+TARGET_DIR="/usr/share/sddm/themes/$THEME_NAME"
+
+ok()      { echo -e "\033[1;32m[OK]\033[0m $1"; }
+info()    { echo -e "\033[1;36m[INFO]\033[0m $1"; }
+warn()    { echo -e "\033[1;33m[WARN]\033[0m $1"; }
+error()   { echo -e "\033[1;31m[ERROR]\033[0m $1"; [[ "${2:-}" == "true" ]] && exit "${3:-1}"; }
+
+ask() {
+    local prompt="$1"
+    local abort_on_refuse="${2:-false}"
+    [[ "$SKIP_CONFIRMATION" == "true" ]] && return 0
+    read -rp "$prompt [y/N] " response
+    if [[ ! "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]; then
+        [[ "$abort_on_refuse" == "true" ]] && error "Aborting..." true
+        warn "Continuing..."
+        return 1
+    fi
+}
+
+
+update_theme() {
+    info "Updating SDDM theme: $THEME_NAME"
+    for item in *; do
+        if [[ "$item" != "$(basename "${BASH_SOURCE[0]}")" ]]; then
+            cp -rv "$item" "$TARGET_DIR"/
+        fi
+    done
+    ok "SDDM theme updated successfully!"
+}
+
+parse_arguments() {
+    for arg in "${ARGUMENTS[@]}"; do
+        case "$arg" in
+            yes) SKIP_CONFIRMATION=true ;;
+            help) help ;;
+            *) error "Unknown argument: $arg" true ;;
+        esac
+    done
+}
+
+help() {
+    echo -e "\033[93;4mUsage:\033[0m"
+    echo -e "  sudo $0 [options]"
+    echo -e "\nOptions:"
+    echo -e "  yes         Skip confirmations"
+    echo -e "  help        Show this help"
+    exit 0
+}
+
+parse_arguments
+
+if [[ $EUID -ne 0 ]]; then
+    error "Please run this script with sudo!" true
+fi
+
+[[ ! -d "$SOURCE_DIR" ]] && error "Source directory not found: $SOURCE_DIR" true
+[[ ! -d "$TARGET_DIR" ]] && mkdir -p "$TARGET_DIR" && ok "Created target directory $TARGET_DIR"
+
+ask "Proceed to copy new theme files?" true
+update_theme
+
+exit 0
+

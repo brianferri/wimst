@@ -1,0 +1,10 @@
+[SddmGreeterTheme]
+Name=WIMST
+Description=That feeling when your SDDM theme suddenly disappeared
+Website=https://github.com/stepanzubkov/where-is-my-sddm-theme
+MainScript=Main.qml
+ConfigFile=theme.conf
+TranslationsDirectory=translations
+Theme-Id=wimst
+Theme-API=2.2
+QtVersion=6
